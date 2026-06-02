@@ -153,8 +153,8 @@
         
         /* 버튼을 누르고 있을 때 옴폭 들어가는 효과 (Neumorphism Pressed) */
         .tactile-pressed {
-            box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
-            background: var(--bg-color);
+            box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light) !important;
+            background: var(--bg-color) !important;
             transform: scale(0.96);
         }
         
@@ -243,6 +243,31 @@
         input:checked + .slider-round:before {
             transform: translateX(24px);
         }
+        
+        /* 토스트 팝업 스타일링 */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 12px;
+            padding: 12px 24px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 100px;
+            transform: translateX(-50%);
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: opacity 0.3s ease, bottom 0.3s ease, visibility 0.3s;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 0.9;
+            bottom: 120px;
+        }
     </style>
 </head>
 <body class="font-body-md min-h-screen flex flex-col items-center overflow-hidden">
@@ -266,54 +291,59 @@
 </header>
 
 <!-- 2. 중앙 메인 영역 -->
-<!-- 하단 플로팅 네비바(64px)와 여백(bottom-4)에 가리지 않도록 pb-[96px]로 메인 패딩 바텀을 넉넉히 줍니다. -->
 <main class="flex-1 w-full max-w-[480px] flex flex-col overflow-hidden px-4 pt-4 pb-[96px] gap-4">
     
     <!-- 계산 결과 출력 화면 (Display Area) -->
-    <div class="w-full rounded-2xl flex flex-col items-end justify-end gap-1 display-inset p-6 min-h-[140px] max-h-[220px] relative group">
+    <!-- 클릭 시 클립보드 복사 연동, 마우스 호버 시 복사 안내 커서 스타일 적용 -->
+    <div class="w-full rounded-2xl flex flex-col items-end justify-end gap-1 display-inset p-6 min-h-[140px] max-h-[220px] relative group cursor-pointer" 
+         onclick="copyToClipboard()" 
+         title="터치하면 계산값을 클립보드에 복사합니다.">
         <!-- 이전 수식 표시기 -->
         <div class="font-label-lg text-label-lg opacity-50 h-6 overflow-hidden select-none pr-8" id="prev-calc"></div>
         <!-- 현재 숫자 및 수식 입력 창 -->
         <div class="font-display-lg text-display-lg break-all text-right leading-none pr-8 select-text" id="current-calc" style="font-size: 48px;">0</div>
         
-        <!-- 백스페이스(지우기) 버튼: 입력값이 0이 아닐 때 터치해서 오타를 지울 수 있게 구성 -->
-        <button class="absolute right-4 bottom-4 w-8 h-8 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 rounded-full opacity-60 hover:opacity-100 active:scale-90 transition-all" onclick="backspace()" title="한 글자 지우기">
+        <!-- 백스페이스(지우기) 버튼 -->
+        <!-- 클릭 전파 방지(stopPropagation)를 주어 백스페이스 터치 시 복사가 실행되지 않게 합니다. -->
+        <button class="absolute right-4 bottom-4 w-8 h-8 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 rounded-full opacity-60 hover:opacity-100 active:scale-90 transition-all" 
+                onclick="event.stopPropagation(); backspace();" title="한 글자 지우기">
             <span class="material-symbols-outlined text-[20px]">backspace</span>
         </button>
     </div>
 
     <!-- 키패드 버튼 그리드 (Keypad Grid) -->
+    <!-- 각 단추에 data-val을 지정해 키보드 단축키 눌림 모션과 매칭시킵니다. -->
     <div class="grid grid-cols-4 content-start flex-1 gap-4 mb-2">
         <!-- 첫 번째 줄 -->
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="clearCalc()">C</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendOp('()')">( )</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendOp('%')">%</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('÷')">÷</button>
+        <button data-val="c" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="clearCalc()">C</button>
+        <button data-val="()" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendOp('()')">( )</button>
+        <button data-val="%" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendOp('%')">%</button>
+        <button data-val="÷" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('÷')">÷</button>
         
         <!-- 두 번째 줄 -->
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('7')">7</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('8')">8</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('9')">9</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('×')">×</button>
+        <button data-val="7" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('7')">7</button>
+        <button data-val="8" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('8')">8</button>
+        <button data-val="9" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('9')">9</button>
+        <button data-val="×" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('×')">×</button>
         
         <!-- 세 번째 줄 -->
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('4')">4</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('5')">5</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('6')">6</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('-')">−</button>
+        <button data-val="4" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('4')">4</button>
+        <button data-val="5" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('5')">5</button>
+        <button data-val="6" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('6')">6</button>
+        <button data-val="-" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('-')">−</button>
         
         <!-- 네 번째 줄 -->
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('1')">1</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('2')">2</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('3')">3</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('+')">+</button>
+        <button data-val="1" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('1')">1</button>
+        <button data-val="2" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('2')">2</button>
+        <button data-val="3" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('3')">3</button>
+        <button data-val="+" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed text-primary font-bold" onclick="appendOp('+')">+</button>
         
         <!-- 다섯 번째 줄 -->
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendOp('+/-')">±</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('0')">0</button>
-        <button class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('.')">.</button>
-        <!-- 계산 실행 (=) 버튼: 눈에 잘 띄게 주조색(Primary) 적용 및 액션 강화 -->
-        <button class="rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] bg-primary text-[#fef9f1] dark:text-[#1a1713] shadow-lg active:scale-95 transition-all hover:brightness-110 font-bold" onclick="calculate()">=</button>
+        <button data-val="+/-" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendOp('+/-')">±</button>
+        <button data-val="0" class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('0')">0</button>
+        <button data-val="." class="tactile-raised rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] active:tactile-pressed" onclick="appendNum('.')">.</button>
+        <!-- 계산 실행 (=) 버튼 -->
+        <button data-val="=" class="rounded-2xl flex items-center justify-center font-headline-md text-headline-md h-full min-h-[72px] bg-primary text-[#fef9f1] dark:text-[#1a1713] shadow-lg active:scale-95 transition-all hover:brightness-110 font-bold" onclick="calculate()">=</button>
     </div>
 </main>
 
@@ -352,6 +382,18 @@
             </label>
         </div>
 
+        <!-- 효과음 토글 신규 추가 -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary">volume_up</span>
+                <span class="font-body-lg text-body-lg">버튼 효과음 (클릭틱)</span>
+            </div>
+            <label class="switch-toggle">
+                <input type="checkbox" id="sound-switch" checked onchange="toggleSoundSetting(this.checked)">
+                <span class="slider-round"></span>
+            </label>
+        </div>
+
         <hr style="border-color: var(--border-color)">
 
         <!-- 앱 정보 보기 버튼 -->
@@ -369,7 +411,7 @@
 
     <!-- 푸터 정보 -->
     <div class="text-xs opacity-40 text-center select-none pt-4 border-t" style="border-color: var(--border-color)">
-        나만의 계산기 v1.1.0
+        나만의 계산기 v1.2.0
     </div>
 </div>
 
@@ -408,6 +450,10 @@
             <p><strong>괄호 <code>( )</code> 사용법</strong><br>열린 괄호가 남아 있을 때는 알아서 닫아주고, 그 외에는 열어주는 지능형 괄호가 탑재되어 있습니다.</p>
             <p><strong>기록 불러오기</strong><br>하단 탭이나 우측 상단 단추를 눌러 '계산 기록'을 연 뒤, 과거 수식을 터치하면 입력창에 수식이 복사됩니다.</p>
             <p><strong>± 부호 바꾸기</strong><br>입력 중이던 숫자의 부호를 바로 음수(-)나 양수(+)로 바꿀 수 있습니다.</p>
+            <!-- 키보드 단축키 정보 추가 -->
+            <p><strong>⌨️ 키보드 작동 지원</strong><br>PC 키보드로 숫자 패드 및 사칙연산 키, 백스페이스, <code>Enter</code>(=), <code>Esc</code>(초기화)를 바로 사용할 수 있습니다.</p>
+            <!-- 클립보드 복사 정보 추가 -->
+            <p><strong>📋 값 복사하기</strong><br>계산 결과 창을 터치하면 클립보드에 숫자가 즉시 복사됩니다.</p>
         </div>
         
         <button class="w-full py-3 bg-primary text-[#fef9f1] dark:text-[#1a1713] rounded-2xl active:scale-95 transition-all text-center font-bold" onclick="closeInfoModal()">
@@ -417,7 +463,6 @@
 </div>
 
 <!-- 6. 하단 내비게이션 바 (Bottom Navigation Bar) -->
-<!-- 계산기 버튼들의 가로 정렬 너비(448px)와 완벽하게 대칭되도록 w-[calc(100%-32px)] max-w-[448px]와 플로팅 효과 적용 -->
 <nav class="w-[calc(100%-32px)] max-w-[448px] mx-auto bg-[#f2ede6]/90 dark:bg-[#1a1713]/90 backdrop-blur-md border flex justify-around items-center px-2 shrink-0 z-40 fixed bottom-4 left-0 right-0 h-[64px] rounded-2xl shadow-xl transition-all" style="border-color: var(--border-color)">
     <!-- 계산 탭 -->
     <button class="flex-1 flex flex-col items-center justify-center gap-1 group py-1" onclick="closeHistoryAndSidebar()">
@@ -444,6 +489,9 @@
     </button>
 </nav>
 
+<!-- 복사 토스트 알림을 위한 엘리먼트 -->
+<div id="toast">복사 완료!</div>
+
 <!-- 7. 비즈니스 로직 및 인터랙션 스크립트 -->
 <script>
     // 상태 변수 정의
@@ -451,6 +499,7 @@
     let previousCalc = '';    // 이전에 수행했던 수식 표시 텍스트
     let historyList = [];     // 계산 내역 저장 리스트
     let isVibrationEnabled = true; // 진동 효과 켜짐 여부
+    let isSoundEnabled = true;     // 클릭 효과음 켜짐 여부
 
     // [1] 초기화 실행
     document.addEventListener("DOMContentLoaded", () => {
@@ -459,7 +508,6 @@
         if (savedHistory) {
             historyList = JSON.parse(savedHistory);
         } else {
-            // 초기 더미 데이터 (비어있지 않게 몇 개 제공)
             historyList = [
                 { expr: '120 + 340', res: '460' },
                 { expr: '4500 ÷ 12', res: '375' }
@@ -491,8 +539,20 @@
             if (vibeSwitch) vibeSwitch.checked = true;
         }
 
+        // 로컬 저장소에서 소리 설정 불러오기
+        const savedSound = localStorage.getItem("calculatorSound");
+        const soundSwitch = document.getElementById("sound-switch");
+        if (savedSound === 'false') {
+            isSoundEnabled = false;
+            if (soundSwitch) soundSwitch.checked = false;
+        } else {
+            isSoundEnabled = true;
+            if (soundSwitch) soundSwitch.checked = true;
+        }
+
         updateDisplay();
         renderHistory();
+        initKeyboardSupport();
     });
 
     // [2] 디스플레이 출력 갱신
@@ -518,6 +578,7 @@
     // [3] 숫자 입력 처리
     function appendNum(num) {
         hapticFeedback();
+        playClickSound();
 
         // 1. 디스플레이 상태가 '0'일 때의 처리
         if (currentDisplay === '0') {
@@ -565,6 +626,7 @@
     // [4] 연산자 및 특수 연산 버튼 입력 처리
     function appendOp(op) {
         hapticFeedback();
+        playClickSound();
 
         // 디스플레이에 에러가 나있었다면 초기화
         if (currentDisplay === 'Error') {
@@ -573,7 +635,6 @@
 
         // 1. 부호 반전 (±) 처리
         if (op === '+/-') {
-            // 공백 단위로 쪼개어 마지막 숫자 부분을 반전시킵니다.
             const tokens = currentDisplay.trim().split(' ');
             let lastToken = tokens[tokens.length - 1];
 
@@ -643,6 +704,7 @@
     // [5] 오타 지우기 (Backspace) 구현
     function backspace() {
         hapticFeedback();
+        playClickSound();
         
         if (currentDisplay === '0' || currentDisplay === 'Error') {
             return;
@@ -665,6 +727,7 @@
     // [6] 계산기 초기화 (C)
     function clearCalc() {
         hapticFeedback();
+        playClickSound();
         currentDisplay = '0';
         previousCalc = '';
         updateDisplay();
@@ -673,6 +736,7 @@
     // [7] 계산 실행 (=)
     function calculate() {
         hapticFeedback();
+        playClickSound();
         try {
             let expr = currentDisplay.trim();
 
@@ -708,13 +772,13 @@
             // 패턴 C: 기타 단독 퍼센트 처리 (예: 50% -> 50/100)
             targetEval = targetEval.replace(/([0-9.]+)\%/g, '($1/100)');
 
-            // 5. 보안 필터링: 숫자, 연산기호, 소수점, 괄호, 공백만 허용
+            // 5. 보안 필터링
             const safeFilter = /^[0-9+\-*/().\s]*$/;
             if (!safeFilter.test(targetEval)) {
                 throw new Error("Invalid Format");
             }
 
-            // 6. 안전한 스크립트 실행 함수 생성 및 연산 수행
+            // 6. 안전한 실행
             const calcFunc = new Function(`return (${targetEval})`);
             const result = calcFunc();
 
@@ -723,7 +787,7 @@
                 throw new Error("Math Error");
             }
 
-            // 7. 자바스크립트 부동소수점 오차 보정 (12자리 반올림 후 지저분한 0 제거)
+            // 7. 부동소수점 오차 보정
             let formattedResult = Number(result.toFixed(12)).toString();
 
             // 이전 수식창에 표현식 누적 표시
@@ -743,7 +807,6 @@
             updateDisplay();
 
         } catch (e) {
-            // 연산 오류 발생 시 Error 메세지 송출 후 복구
             currentDisplay = 'Error';
             updateDisplay();
             setTimeout(() => {
@@ -791,7 +854,7 @@
         currentDisplay = expr;
         previousCalc = '';
         updateDisplay();
-        toggleHistory(); // 수식을 복사하고 기록 시트를 닫아 계산기로 돌아옵니다.
+        toggleHistory();
     }
 
     // [11] 모든 계산 기록 전체 삭제
@@ -820,7 +883,6 @@
         drawer.classList.remove('active');
         sidebarOverlay.classList.add('hidden');
         
-        // 탭바 선택 하이라이트 활성화
         highlightNav('calc');
     }
 
@@ -885,32 +947,153 @@
         hapticFeedback();
     }
 
-    // [18] 모바일 장치 버튼 진동 피드백 실행
+    // [18] 효과음 사용 설정 변경 (신규 추가)
+    function toggleSoundSetting(isEnabled) {
+        isSoundEnabled = isEnabled;
+        localStorage.setItem("calculatorSound", isEnabled ? "true" : "false");
+        hapticFeedback();
+        playClickSound();
+    }
+
+    // [19] 모바일 장치 버튼 진동 피드백 실행
     function hapticFeedback() {
         if (isVibrationEnabled && window.navigator && window.navigator.vibrate) {
-            window.navigator.vibrate(15); // 15ms 진동 실행
+            window.navigator.vibrate(15);
         }
     }
 
-    // [19] 정보 팝업 모달창 열기
+    // [20] Web Audio API 기반 미니 클릭음 생성 (추가 리소스 필요 없음)
+    function playClickSound() {
+        if (!isSoundEnabled) return;
+        try {
+            // 웹 오디오 엔진 선언
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            const audioCtx = new AudioContext();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine'; // 부드러운 사인 음파 사용
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime); // 주파수 설정 (900Hz의 경쾌한 소리)
+            
+            // 볼륨 감쇄 조절 (0.05초 동안 아주 부드럽게 줄여서 틱 소리로 만듦)
+            gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.05);
+            
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.05);
+        } catch (e) {
+            // 브라우저 탭 활성화 전 오디오 재생 제약 대비 예외 처리
+        }
+    }
+
+    // [21] 정보 팝업 모달창 제어
     function openInfoModal() {
         hapticFeedback();
         const modal = document.getElementById("info-modal");
         modal.classList.remove("hidden");
     }
 
-    // [20] 정보 팝업 모달창 닫기
     function closeInfoModal() {
         hapticFeedback();
         const modal = document.getElementById("info-modal");
         modal.classList.add("hidden");
     }
 
-    // [21] 배경 어두운 면 터치 시 정보 팝업 닫기
     function closeInfoModalOnOverlay(event) {
         if (event.target === document.getElementById("info-modal")) {
             closeInfoModal();
         }
+    }
+
+    // [22] 원터치 클립보드 값 복사 기능 및 토스트 팝업 (신규 추가)
+    function copyToClipboard() {
+        const valueToCopy = currentDisplay;
+        if (valueToCopy === 'Error' || valueToCopy === '0') return;
+
+        navigator.clipboard.writeText(valueToCopy).then(() => {
+            showToast("클립보드에 복사되었습니다! 📋");
+        }).catch(err => {
+            showToast("복사에 실패했습니다.");
+        });
+    }
+
+    // [23] 미니 안내 토스트 활성화 (신규 추가)
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.className = "show";
+        
+        // 2초 후 부드럽게 사라집니다.
+        setTimeout(() => {
+            toast.className = toast.className.replace("show", "");
+        }, 2000);
+    }
+
+    // [24] PC 키보드 지원 및 물리적 버튼 눌림 모션 시뮬레이션 (신규 추가)
+    function initKeyboardSupport() {
+        window.addEventListener('keydown', (e) => {
+            // 포커스가 다른 입력창에 있다면 계산기 단축키 비활성화
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            let key = e.key;
+            let targetButtonValue = null;
+
+            // 키패드 매핑 설정
+            if (key >= '0' && key <= '9') {
+                appendNum(key);
+                targetButtonValue = key;
+            } else if (key === '.') {
+                appendNum('.');
+                targetButtonValue = '.';
+            } else if (key === '+') {
+                appendOp('+');
+                targetButtonValue = '+';
+            } else if (key === '-') {
+                appendOp('-');
+                targetButtonValue = '-';
+            } else if (key === '*') {
+                appendOp('×');
+                targetButtonValue = '×';
+            } else if (key === '/') {
+                appendOp('÷');
+                targetButtonValue = '÷';
+                e.preventDefault(); // 웹 브라우저의 기본 퀵 서치(Quick find) 차단
+            } else if (key === '%') {
+                appendOp('%');
+                targetButtonValue = '%';
+            } else if (key === '(' || key === ')') {
+                appendOp('()');
+                targetButtonValue = '()';
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+                targetButtonValue = '=';
+                e.preventDefault(); // 스페이스/엔터 포커스 방지
+            } else if (key === 'Backspace') {
+                backspace();
+                // 백스페이스 단추 햅틱은 함수 내부에서 이미 처리됩니다.
+            } else if (key === 'Escape') {
+                clearCalc();
+                targetButtonValue = 'c';
+            }
+
+            // 시각적 피드백: 매칭되는 버튼이 있다면 눌림 클래스 부여 후 제거
+            if (targetButtonValue) {
+                const btn = document.querySelector(`button[data-val="${targetButtonValue}"]`);
+                if (btn) {
+                    btn.classList.add('tactile-pressed');
+                    setTimeout(() => {
+                        btn.classList.remove('tactile-pressed');
+                    }, 80);
+                }
+            }
+        });
     }
 </script>
 </body>
